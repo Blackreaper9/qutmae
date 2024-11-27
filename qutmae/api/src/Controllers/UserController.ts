@@ -1,47 +1,80 @@
 import { Request, Response } from "express";
 import { UserModel } from "../models/UsersModel";
+import jwt from "jsonwebtoken";
 
-export const registerUsers = async (req:Request, res:Response):Promise<any> =>{
+export const registerUsers = async (req: Request, rest: Response): Promise<void> => {
     try {
-       
-        //validar que los datos que tenmos existen
         const name = req.body.name
         const email = req.body.email
-        const lastNames = req.body.lastName
+        const lastnames = req.body.lastnames
         const password = req.body.password
         const rol = req.body.rol
 
-         //Administradores no pueden crear clientes
-         if(req.user?.rol === "administrator" && rol === "client"){
-            return res.status(400).json({msg:"los administradores no pueden crear clientes"})
+        if (req.user?.rol === "administrator" && rol === "client") {
+            rest.status(400).json({
+                msg: "Los administradores no pueden crear clientes"
+            })
+            return
         }
 
-        if(!name || !email || !lastNames || !password ||!rol){
-            return res.status(400).json({
-            msg: "Faltan datos para crear un usuario"
+        if (!name || !email || !lastnames || !password || !rol) {
+            rest.status(400).json({
+                msg: "Faltan datos para crear un usuario"
+            })
+            return
+        }
+        if (rol === "administrator" && req.user?.rol != "administrator") {
+            rest.status(400).json({
+                msg: "No puedes crear un nuevo administrador si no eres uno"
+            })
+            return
+        }
+
+        const user = await UserModel.create({
+            name,
+            email,
+            lastnames,
+            password,
+            rol
         })
 
+        const token = jwt.sign(JSON.stringify(user), "Chansawman");
+
+        rest.status(200).json({
+            msg: "Usuaro registrado con exito", token
+        })
+        return
+    } catch (error) {
+        console.log(error);
+        rest.status(500).json({
+            msg: "Hubo un error al crear el usuario"
+        })
+        return
     }
-    //validar que el usuario sea administrador si el usuario crear es administrador
-    if(rol === "administrator" && req.user?.rol !="administrator"){
-        return res.status(400).json({
-            msg: "No puedes crear un administrador si no eres uno"
-    })
 }
 
-
- await UserModel.create({
-    name,
-    lastNames,
-    email,
-    password,
-    rol
- })
- return res.status(200).json({msg:"Usuario registrado con exito"})
-    } catch (error) {
-        console.log (error)
-        return res.status(500).json({msg:"Hubo un error al crear el usuario"})
-
+export const singin= async (req:Request, res: Response):Promise<void>=>{
+    
+    try {
+        const user = await UserModel.findOne({email:req.body.email, password:req.body.password})
         
+        if(!user) {
+             res.status(400).json({
+                msg:"No hay coincidencias en el sistema"
+            })
+            return;
+           }
+       if(user){
+        const token= jwt.sign(JSON.stringify(user),"pocoyo");
+         res.status(200).json({msg: "Sesion iniciada con exito", token})
+         return;
+       }
+    } catch (error) {
+        console.log(error);
+         res.status(500).json({
+            msg:"Hubo un error al iniciar sesion"
+        })
+        return;
     }
+
 }

@@ -2,7 +2,7 @@
 interface IUser{
     name:String;
     email:string;
-    lastNames:string;
+    lastnames:string;
     password:string;
     questionaireId:Schema.Types.ObjectId | string;
     rol: "administrator" |  "client";

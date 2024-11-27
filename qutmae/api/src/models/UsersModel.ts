@@ -6,9 +6,8 @@ const UserSchema = new Schema <IUser>({
         type:String,
         required:true
     },
-    lastNames:{
+    lastnames:{
         type:String,
-        
         required:true
     },
     email:{
@@ -23,7 +22,7 @@ const UserSchema = new Schema <IUser>({
     rol:{
         type:String,
         enum:[" administrator" , "client" ],
-        default: " client"
+        default: "client"
        
     }
 });

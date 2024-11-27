@@ -32,11 +32,11 @@ export interface IAnswer{
 
 
 export interface IUser{
-    name:String;
+    name:string;
     email:string;
-    lastNames:string;
+    lastnames:string;
     password:string;
     questionaireId:Schema.Types.ObjectId | string;
-    rol: " administrator" |  " client";
+    rol: " administrator" |  "client";
    
 }
