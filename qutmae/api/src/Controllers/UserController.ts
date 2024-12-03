@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { UserModel } from "../models/UsersModel";
+import { UsersModel } from "../models/UsersModel";
 import jwt from "jsonwebtoken";
 
 export const registerUsers = async (req: Request, rest: Response): Promise<void> => {
@@ -30,7 +30,7 @@ export const registerUsers = async (req: Request, rest: Response): Promise<void>
             return
         }
 
-        const user = await UserModel.create({
+        const user = await UsersModel.create({
             name,
             email,
             lastnames,
@@ -56,7 +56,7 @@ export const registerUsers = async (req: Request, rest: Response): Promise<void>
 export const singin= async (req:Request, res: Response):Promise<void>=>{
     
     try {
-        const user = await UserModel.findOne({email:req.body.email, password:req.body.password})
+        const user = await UsersModel.findOne({email:req.body.email, password:req.body.password})
         
         if(!user) {
              res.status(400).json({
