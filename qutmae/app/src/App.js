@@ -5,18 +5,30 @@ import { Button, Card, Col, Container, Form, Row } from "react-bootstrap";
 
 const App = () => {
   const [data, setData] = useState({});
-
+  const navigate = useNavigate();
   const onChange = (e) => {
     e.preventDefault();
     const loginData = data;
     loginData[e.target.name] = e.target.value;
     setData(loginData)
   }
-
-  const onSubmit = () => {
-    //Peticion a la DB
-    console.log(data)
+  const onSubmit = async () => {
+    try {
+      const res = await axios.post("http://localhost:4000/users/sign-in", data);
+      const user = res.data.user;
+      user.logined = true;
+      localStorage.user = JSON.stringify(user)
+      if(user.rol == "administrator"){
+        navigate("/home")
+      }else{
+        navigate("/list-q")
+      }
+    } catch (error) {
+      alert("Incorrecto")
+    }
   }
+
+
 
   return (
     <Container className="mt-3">

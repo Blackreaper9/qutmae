@@ -1,148 +1,85 @@
 import { Request, Response } from "express";
-import { OptionModel} from "../models/OptionsModel";
+import { IQuestionnaire } from "../GlobalTypes";
+import { OptionModel } from "../models/OptionsModel";
 import { QuestionModel } from "../models/QuestionsModel";
 import { QuestionnaireModel } from "../models/QuestionnairesModel";
 import { UsersModel } from "../models/UsersModel";
-import { AnswersModel } from "../models/AnswersModel";
 
 
 
-export const CreateQuestionnaires = async (req:Request, res: Response):Promise<void>=>{
+
+export const createQuizz = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const body = req.body;
+        if (!body.description || !body.title || !body.userId) {
+            res.status(400).json({ msg: "Faltan datos para crear un cuestionario" })
+        }
+        const questionnaire: IQuestionnaire = {
+            description: body.description,
+            title: body.title,
+            userId: body.userId
+        }
+        let isInvalidQuestion = false;
+        for (const question of body.questions) {
+            if (!question.title || !question.type || typeof question.isMandatory == "undefined") {
+                isInvalidQuestion = true;
+            }
+            if (question.options.length <= 0 || !question.options[0] || question.options[0].length <= 0) {
+                isInvalidQuestion = true
+            }
+        }
+        if (isInvalidQuestion) {
+            res.status(400).json({ msg: "Faltan datos para crear un cuestionario (en preguntas)" })
+            return
+        }
+        const createdQuestionnaire = await QuestionnaireModel.create(questionnaire);
+        for (const question of body.questions) {
+            const objQuestion = {
+                title: question.title,
+                type: question.type,
+                isMandatory: question.isMandatory,
+                questionnaireId: createdQuestionnaire._id
+            };
+            const createdQuestion = await QuestionModel.create(objQuestion);
+            for (const option of question.options) {
+                const objOption = {
+                    title: option,
+                    questionId: createdQuestion._id
+                }
+                await OptionModel.create(objOption);
+            }
+        }
+        res.status(200).json({ msg: "Cuestionario creado con exito" })
+        return
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ msg: "Hubo un error al crear el cuestionario" })
+        return
+    }
+}
     
-    try {
-        const title = req.body.title
-        const description = req.body.description
-        const userId = req.body.userId
-        
-        if (req.user?.rol === "administrator")
-    {
-        res.status(400).json({msg:"Los administradores no tiene permitido la creacion de usuarios"})
-    return
-    }
-
-    if(!title || !description || !userId){res.status(400).json({msg:"Datos insuficientes"})
-        return;
-
-    }
- 
-    const questionnaire = await QuestionModel.create({
-        title,
-        description,
-        userId,   
-    });
-
-    const user = await UsersModel.findById(userId);
-        if(!user){
-            res.status(400).json({msg:"El usuario que intenta crear la actividad no existe"})
-            return;
+export const getMetrics = async (req: Request, res: Response): Promise<void> => {
+        try {
+            const numberOfUsers = await UsersModel.find({ rol: "client" }).countDocuments();
+            const numberOfQuestionnaires = await QuestionnaireModel.find().countDocuments();
+            res.status(200).json({ msg: "Datos obtenidos con exito", numberOfQuestionnaires, numberOfUsers });
+            return
+        } catch (error) {
+            console.log(error);
+            res.status(500).json({ msg: "Hubo un error al obtener las metricas de la aplicación" })
+            return
         }
-        res.status(200).json({ msg: "Cuestionario creado con éxito", questionnaire })
-        return;
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ msg: "Error al crear el cuestionario" })
-        return;
     }
-};
-
-export const getQuestionnaire = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const questionnaire = await QuestionnaireModel.findOne({ title: req.body.title })
-        res.status(200).json({ questionnaire })
-        return;
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ msg: "Error al obtener los cuestionarios" })
-        return;
-    }
-};
-
-export const createQuestion = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const title = req.body.title
-        const type = req.body.type
-        const isMandatory = req.body.isMandatory
-        const questionnaireId = req.body.questionnaireId
-
-        if (!title || !type || !questionnaireId || !isMandatory) {
-            res.status(400).json({ msg: "Faltan datos para crear la pregunta" });
+    
+    export const getQuestionnaires = async (req: Request, res: Response): Promise<void> => {
+        try {
+            const questionnaires = await QuestionnaireModel.find();
+            res.status(200).json({msg:"Cuestionarios obtenidos con exito",questionnaires})
             return;
+        } catch (error) {
+            console.log(error);
+            res.status(500).json({ msg: "Hubo un error al obtener los cuestionarios" })
+            return
         }
-
-        const question = await QuestionModel.create({
-            title,
-            type,
-            isMandatory,
-            questionnaireId,
-        });
-
-        res.status(200).json({ msg: "Pregunta creada con éxito", question })
-        return;
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ msg: "Error al crear la pregunta" })
-        return;
     }
-};
-
-export const getQuestion= async (req: Request, res: Response): Promise<void> => {
-    try {
-        const questionn = await QuestionModel.findOne({ questionnaireId:req.body.questionnaireId})
-        res.status(200).json({ questionn })
-        return;
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ msg: "Error al obtener los cuestionarios" })
-        return;
-    }
-};
-
-export const createOption = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const title = req.body.title
-        const questionId = req.body.questionId
-
-        if (!title || !questionId) {
-            res.status(400).json({ msg: "Faltan datos para crear la opción" });
-            return;
-        }
-
-        const option = await OptionModel.create({
-            title,
-            questionId,
-        });
-
-        res.status(200).json({ msg: "Opción creada con éxito", option })
-        return;
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ msg: "Error al crear la opción" })
-        return;
-    }
-};
-
-export const createAnswer = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const questionnaireId = req.body.questionnaireId
-        const questionId = req.body.questionId
-        const answer  = req.body.answer
-
-        if (!questionnaireId || !questionId || !answer) {
-            res.status(400).json({ msg: "Faltan datos para enviar la respuesta" });
-            return;
-        }
-
-        const newAnswer = await AnswersModel.create({
-            questionnaireId,
-            questionId,
-            answer,
-        });
-
-        res.status(200).json({ msg: "Respuesta enviada con éxito", newAnswer})
-        return;
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ msg: "Error al enviar respuesta"})
-        return;
-    }
-};
+    
